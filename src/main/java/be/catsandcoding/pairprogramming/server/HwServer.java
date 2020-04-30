@@ -1,5 +1,8 @@
 package be.catsandcoding.pairprogramming.server;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.zeromq.*;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class HwServer {
 
@@ -56,9 +59,18 @@ public class HwServer {
                 msg.destroy();
 
                 System.out.println("sending: " + content.toString());
-                pub.send(content.toString());
-                address.destroy();
-                content.destroy();
+                try {
+                    TopicAssigner topicAssigner = new ObjectMapper()
+                        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                            .readValue(content.toString(), TopicAssigner.class);
+                    pub.sendMore(topicAssigner.getSessionId());
+                    pub.send(content.toString());
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                } finally {
+                    address.destroy();
+                    content.destroy();
+                }
             }
             ctx.destroy();
         }
