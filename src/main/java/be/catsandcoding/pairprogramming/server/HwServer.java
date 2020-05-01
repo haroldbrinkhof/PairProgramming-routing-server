@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class HwServer {
 
     public static void main(String[] args) throws Exception {
-        Thread mainAction = new Thread(new server_task());
+        Thread mainAction = new Thread(new ServerTask());
         mainAction.start();
         while(mainAction.isAlive()){
             Thread.sleep(200);
@@ -15,7 +15,7 @@ public class HwServer {
 
     }
 
-    private static class server_task implements Runnable {
+    private static class ServerTask implements Runnable {
         @Override
         public void run() {
             try (ZContext ctx = new ZContext()) {
@@ -28,19 +28,18 @@ public class HwServer {
                 ZMQ.Socket publish = ctx.createSocket((SocketType.PUB));
                 publish.bind("tcp://*:5571");
 
-                for (int threadNbr = 0; threadNbr < 5; threadNbr++)
-                    new Thread(new server_worker(ctx, publish)).start();
+                new Thread(new PublishAll(ctx, publish)).start();
 
                 ZMQ.proxy(frontend, backend, null);
             }
         }
     }
 
-    private static class server_worker implements Runnable {
+    private static class PublishAll implements Runnable {
         private final ZContext ctx;
         private final ZMQ.Socket pub;
 
-        public server_worker(ZContext ctx,ZMQ.Socket pub) {
+        public PublishAll(ZContext ctx,ZMQ.Socket pub) {
             this.ctx = ctx;
             this.pub = pub;
         }
